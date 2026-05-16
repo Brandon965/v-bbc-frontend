@@ -1,34 +1,33 @@
 <script setup lang="ts">
 
-const page_data = ref([])
-const selected = ref<any[]>([])
+const page_data = ref<any[]>([])
+const selected = reactive<any[]>([])
 
 const keyPressed = async (e: KeyboardEvent, inputValue) => {
     if (e.code == 'Enter') {
-        console.log(inputValue)
+        page_data.value = []
+
         const data = await useFetch('/api/search', {
             query: {
                 title: inputValue
             }
         })
 
-        console.log(data)
         page_data.value = data.data.value?.search
     }
 }
 
-const openPage = (v) => {
+const openPage = () => {
     const router = useRouter()
-    const e = selected.value.join('&')
+    const e = selected.join('&')
     router.push({ path: '/download', query: { data: e } })
 }
 
-const selectedData = (e) => {
-    const r = selected.value.findIndex((f) => f == e)
-    if (r != -1) {
-        selected.value.splice(r)
+const selectedData = (r, index) => {
+    if (selected[index]) {
+        selected.splice(index, 1)
     } else {
-        selected.value.push(e)
+        selected[index] = r
     }
 }
 
@@ -42,9 +41,10 @@ const selectedData = (e) => {
                 <div class="prefix">{{ page.name }}</div>
                 <div class="wrapper">
                     <div class="card" v-for="(item, index) in page.data"
-                        :class="`${selected.find((e) => e == `${page.id}=${item.link}`) ? 'selected' : ''}`"
-                        @click="selectedData(`${page.id}=${item.link}`)">
+                        :class="`${selected[index] === `${page.id}=${item.link}` ? 'selected' : ''}`"
+                        @click="(e) => { selectedData(`${page.id}=${item.link}`, index) }">
                         <NuxtImg :src="item.cover" width="336" height="478" />
+
                         <div class="tag">{{ item.tag }}</div>
                         <div>{{ item.title }}</div>
                     </div>
@@ -69,6 +69,11 @@ const selectedData = (e) => {
 .section input {
     height: 30px;
     font-size: 20px;
+}
+
+.section input:focus {
+    border: none;
+    outline: none;
 }
 
 .options {
@@ -96,10 +101,13 @@ const selectedData = (e) => {
 }
 
 .card {
+    z-index: 1;
     margin: 2px;
     width: 180px;
     height: 360px;
+    overflow: hidden;
     position: relative;
+    background-color: #070307;
     border: 4px #ffffff00 solid;
 }
 

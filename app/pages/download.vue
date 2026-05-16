@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import { compareImages } from '~/lib/compare'
+
 const route = useRoute()
+
+const queries = String(route.query.data).split('&')
+const total_ids = queries.map((query) => { return { id: query.split('=')[0] } })
 
 const { data, pending } = await useFetch('/api/download', {
     lazy: true,
@@ -8,9 +13,21 @@ const { data, pending } = await useFetch('/api/download', {
     }
 })
 
-console.log(data.value?.download)
+const compareData = ref([])
 
+watch(pending, (value) => {
+    if (!value) {
+        compareData.value = compareImages(data.value?.download)
 
+        // console.log(compareData.value)
+        // let test_id: string = ''
+        // let multiple_id = false
+        // total_ids.forEach((id) => {
+        //     if (test_id == '') { test_id = String(id) }
+        //     multiple_id = test_id != '' && test_id !== String(id)
+        // })
+    }
+})
 
 
 </script>
@@ -19,14 +36,15 @@ console.log(data.value?.download)
     <div class="section">
         <div class="options">
             <div class="loading" v-if="pending">Loading Data...</div>
-            <div class="carousel" v-else v-for="page in data?.download">
-                {{ console.log(page) }}
-                <div class="prefix">{{ page.name }}</div>
+            <div class="carousel" v-else>
                 <div class="wrapper">
-                    <div class="card" v-for="(item, index) in page.data">
-                        <NuxtImg :src="`http://wsrv.nl/?url=${item.tempCover}&w=336`" width="336" fit="cover" />
-                        <div class="volume">Volume {{ item.volume }}</div>
-                    </div>
+                    <template v-for="(item, index) in compareData">
+                        <div class="card" v-if="item[0] != undefined">
+                            <NuxtImg :src="`${item[0].link}`" width="336" fit="cover" />
+                            <div class="volume">Volume {{ item[0].volume }}</div>
+                            <div class="size">{{ item[0].size.replace('*', 'x') }}</div>
+                        </div>
+                    </template>
                 </div>
             </div>
         </div>
@@ -58,8 +76,6 @@ console.log(data.value?.download)
     display: flex;
     height: fit-content;
     flex-direction: column;
-    /* display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); */
 }
 
 .carousel {
@@ -70,8 +86,13 @@ console.log(data.value?.download)
 .carousel .wrapper {
     gap: 10px;
     display: flex;
-    overflow-x: scroll;
+    width: fit-content;
     flex-direction: row;
+    flex-wrap: wrap;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    margin: 0 auto;
+    justify-content: center;
 }
 
 .prefix {
@@ -108,6 +129,18 @@ console.log(data.value?.download)
     top: 0;
     left: 0;
     margin: 5px;
+    color: #fff;
+    font-weight: 600;
+    padding: 5px 10px;
+    text-align: center;
+    position: absolute;
+    background-color: #0000007a;
+}
+
+.card .size {
+    bottom: 0;
+    right: 0;
+    margin: 15px 10px;
     color: #fff;
     font-weight: 600;
     padding: 5px 10px;

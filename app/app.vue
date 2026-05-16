@@ -18,5 +18,6 @@
 
 body {
    padding: 20px;
+   background-color: #040204;
 }
 </style>
