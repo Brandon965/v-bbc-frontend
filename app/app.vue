@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import Display from './components/display.vue';
+
 
 </script>
 
 <template>
    <NuxtLoadingIndicator />
+   <Display />
    <NuxtPage />
 </template>
 
@@ -17,7 +20,14 @@
 }
 
 body {
-   padding: 20px;
+   border: none;
+   width: 100vw;
+   height: 100vh;
+   overflow: hidden;
    background-color: #040204;
+}
+
+#__nuxt {
+   padding: 20px;
 }
 </style>

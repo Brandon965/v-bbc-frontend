@@ -5,7 +5,8 @@ export default defineNuxtConfig({
   modules: ['@nuxt/image'],
   image: {
     domains: [
-      'viewer-epubs-trial.bookwalker.jp'
+      'viewer-epubs-trial.bookwalker.jp',
+      'c.bookwalker.jp'
     ]
   }
 })

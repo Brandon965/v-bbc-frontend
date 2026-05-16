@@ -1,33 +1,45 @@
 <script setup lang="ts">
+import type { SearchData } from '~/types/main'
 
-const page_data = ref<any[]>([])
-const selected = reactive<any[]>([])
+const page_data = shallowRef<SearchData[]>([])
+    const is_pending = shallowRef<boolean>(false)
+const selected = reactive({
+    bw: [],
+    "bw-p": []
+})
+
+const deserializeSearch = (raw: any): SearchData => ({
+    ...raw,
+})
 
 const keyPressed = async (e: KeyboardEvent, inputValue) => {
     if (e.code == 'Enter') {
         page_data.value = []
-
-        const data = await useFetch('/api/search', {
-            query: {
-                title: inputValue
-            }
-        })
-
-        page_data.value = data.data.value?.search
+        is_pending.value = true
+        const data = await $fetch('/api/search', { lazy: true, query: { title: inputValue }, transform: (item) => item.search.map(deserializeSearch) })
+        page_data.value = data.search
+        is_pending.value = false
     }
 }
 
 const openPage = () => {
+    let query = ''
     const router = useRouter()
-    const e = selected.join('&')
-    router.push({ path: '/download', query: { data: e } })
+    for (const key in selected) {
+        selected[key].forEach((element, index) => {
+            if (element != undefined) {
+                query = `${query}${query != '' ? '&' : ''}${key}=${element}`
+            }
+        });
+    }
+    router.push({ path: '/compare', query: { data: query } })
 }
 
-const selectedData = (r, index) => {
-    if (selected[index]) {
-        selected.splice(index, 1)
+const selectedData = (r, pageId, index) => {
+    if (selected[pageId][index] != undefined) {
+        selected[pageId][index] = undefined
     } else {
-        selected[index] = r
+        selected[pageId][index] = r
     }
 }
 
@@ -37,14 +49,14 @@ const selectedData = (r, index) => {
     <div class="section">
         <input type="text" @keypress="keyPressed($event, $event.target?.value)">
         <div class="options">
-            <div class="carousel" v-for="page in page_data">
+            <div class="loading" v-if="is_pending">Loading Data...</div>
+            <div class="carousel" v-for="page in page_data" v-else>
                 <div class="prefix">{{ page.name }}</div>
                 <div class="wrapper">
                     <div class="card" v-for="(item, index) in page.data"
-                        :class="`${selected[index] === `${page.id}=${item.link}` ? 'selected' : ''}`"
-                        @click="(e) => { selectedData(`${page.id}=${item.link}`, index) }">
+                        :class="`${selected[`${page.id}`][index] === `${item.link}` ? 'selected' : ''}`"
+                        @click="(e) => { selectedData(`${item.link}`, `${page.id}`, `${index}`) }">
                         <NuxtImg :src="item.cover" width="336" height="478" />
-
                         <div class="tag">{{ item.tag }}</div>
                         <div>{{ item.title }}</div>
                     </div>
@@ -52,10 +64,24 @@ const selectedData = (r, index) => {
             </div>
         </div>
         <div class="truffle">
-            <div class="button" @click="openPage(selected)">Open</div>
+            <div class="button" @click="openPage()">Open</div>
         </div>
     </div>
 </template>
+
+<style scoped>
+.card {
+    z-index: 1;
+    margin: 2px;
+    min-width: 180px;
+    max-width: 180px;
+    height: fit-content;
+    overflow: hidden;
+    position: relative;
+    background-color: #070307;
+    border: 4px #ffffff00 solid;
+}
+</style>
 
 <style>
 .section {
@@ -64,6 +90,15 @@ const selectedData = (r, index) => {
     height: 100%;
     flex-direction: column;
     overflow: hidden;
+}
+
+.loading {
+    text-align: center;
+    width: 100%;
+    height: fit-content;
+    padding: 20px;
+    font-size: 40px;
+    color: #fff;
 }
 
 .section input {
@@ -78,8 +113,8 @@ const selectedData = (r, index) => {
 
 .options {
     height: 100%;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    display: flex;
+    flex-direction: column;
 }
 
 .carousel {
@@ -89,8 +124,10 @@ const selectedData = (r, index) => {
 
 .carousel .wrapper {
     gap: 10px;
+    margin: 0;
+    width: 100%;
     display: flex;
-    overflow-x: scroll;
+    overflow-x: auto;
     flex-direction: row;
 }
 
@@ -100,16 +137,7 @@ const selectedData = (r, index) => {
     color: #fff;
 }
 
-.card {
-    z-index: 1;
-    margin: 2px;
-    width: 180px;
-    height: 360px;
-    overflow: hidden;
-    position: relative;
-    background-color: #070307;
-    border: 4px #ffffff00 solid;
-}
+
 
 .card.selected {
     border: 4px #fff solid;
@@ -127,7 +155,6 @@ const selectedData = (r, index) => {
     text-align: center;
 }
 
-
 .card .tag {
     top: 0;
     left: 0;
@@ -141,13 +168,17 @@ const selectedData = (r, index) => {
 }
 
 .truffle {
-    width: 10%;
-    position: absolute;
+    gap: 5px;
     bottom: 0;
     left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: black;
+    width: fit-content;
     padding: 10px;
+    display: flex;
+    z-index: 1;
+    position: absolute;
+    flex-direction: row;
+    transform: translate(-50%, -50%);
+    background-color: #0e0015a3;
 }
 
 .truffle .button {

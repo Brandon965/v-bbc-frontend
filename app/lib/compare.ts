@@ -1,9 +1,13 @@
 export const compareImages = (images: any) => {
     const list: any[] = []
 
-    for (const { data } of images) {
-        for (const entry of data) {
-            const vol = Number(entry.volume) -1;
+    console.log(images)
+
+    for (const data of images) {
+        console.log(data)
+        if (!data.name) continue
+        for (const entry of data.data) {
+            const vol = Number(entry.volume) - 1;
             if (!list[vol]) list[vol] = [];
             if (!list[vol][0]) { list[vol][0] = entry }
             else {
