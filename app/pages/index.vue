@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import type { SearchData } from '~/types/main'
+
 const config = useRuntimeConfig()
 
 const page_data = shallowRef<SearchData[]>([])
 const is_pending = shallowRef<boolean>(false)
-const selected = reactive({
+const is_error = shallowRef({
+    error: false,
+    message: '',
+    status: ''
+})
+
+const selected = reactive<Record<string, (string | undefined)[]>>({
     bw: [],
     "bw-p": []
 })
@@ -13,12 +20,18 @@ const deserializeSearch = (raw: any): SearchData => ({
     ...raw,
 })
 
-const keyPressed = async (e: KeyboardEvent, inputValue) => {
+const keyPressed = async (e: KeyboardEvent) => {
     if (e.code == 'Enter') {
         page_data.value = []
         is_pending.value = true
-        const data = await $fetch(`${config.public.apiBase}/api/search`, { lazy: true, query: { title: inputValue }, transform: (item) => item.search.map(deserializeSearch) })
-        page_data.value = data.search
+        const { data, error } = await useFetch(`${config.public.apiBase}/api/search`, { lazy: true, query: { title: e.target!.value }, transform: (item: any) => item.search.map(deserializeSearch) })
+        if (error.value?.status != undefined) {
+            is_error.value.error = true
+            console.log(error.value?.statusCode)
+            // is_error.value.status = String(error.value?.statusCode)
+            // is_error.value.message = String(error.value?.cause)
+        }
+        page_data.value = data!.value
         is_pending.value = false
     }
 }
@@ -27,7 +40,7 @@ const openPage = () => {
     let query = ''
     const router = useRouter()
     for (const key in selected) {
-        selected[key].forEach((element, index) => {
+        selected[key]?.forEach((element, index) => {
             if (element != undefined) {
                 query = `${query}${query != '' ? '&' : ''}${key}=${element}`
             }
@@ -36,21 +49,23 @@ const openPage = () => {
     router.push({ path: '/compare', query: { data: query } })
 }
 
-const selectedData = (r, pageId, index) => {
-    if (selected[pageId][index] != undefined) {
-        selected[pageId][index] = undefined
-    } else {
-        selected[pageId][index] = r
-    }
+const selectedData = (r: string, pageId: string, index: string) => {
+    if (selected[pageId])
+        selected[pageId][Number(index)] = selected[pageId]?.[Number(index)] !== undefined ? undefined : r
 }
 
 </script>
 
 <template>
     <div class="section">
-        <input type="text" @keypress="keyPressed($event, $event.target?.value)">
+        <input type="text" @keypress="keyPressed($event)">
         <div class="options">
             <div class="loading" v-if="is_pending">Loading Data...</div>
+            <div class="loading" v-else-if="is_error.error">
+                <div>Error While Fetching Data</div>
+                <div>{{ is_error.status }}</div>
+                <div>{{ is_error.message }}</div>
+            </div>
             <div class="carousel" v-for="page in page_data" v-else>
                 <div class="prefix">{{ page.name }}</div>
                 <div class="wrapper">
@@ -115,6 +130,8 @@ const selectedData = (r, pageId, index) => {
 .options {
     height: 100%;
     display: flex;
+    overflow-y: scroll;
+    overflow-x: hidden;
     flex-direction: column;
 }
 

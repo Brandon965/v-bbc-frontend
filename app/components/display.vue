@@ -5,7 +5,7 @@ const router = useRouter()
 <template>
     <div class="display">
         <div class="back" @click="router.back()"><</div>
-        <div class="site-title">V-Big Book Covers</div>
+        <div class="site-title">Big World Covers</div>
     </div>
 </template>
 
