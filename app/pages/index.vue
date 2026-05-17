@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { SearchData } from '~/types/main'
+const config = useRuntimeConfig()
 
 const page_data = shallowRef<SearchData[]>([])
-    const is_pending = shallowRef<boolean>(false)
+const is_pending = shallowRef<boolean>(false)
 const selected = reactive({
     bw: [],
     "bw-p": []
@@ -16,7 +17,7 @@ const keyPressed = async (e: KeyboardEvent, inputValue) => {
     if (e.code == 'Enter') {
         page_data.value = []
         is_pending.value = true
-        const data = await $fetch('/api/search', { lazy: true, query: { title: inputValue }, transform: (item) => item.search.map(deserializeSearch) })
+        const data = await $fetch(`${config.public.apiBase}/api/search`, { lazy: true, query: { title: inputValue }, transform: (item) => item.search.map(deserializeSearch) })
         page_data.value = data.search
         is_pending.value = false
     }

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { compareImages } from '~/lib/compare'
 import type { CompareData } from '~/types/main'
+const config = useRuntimeConfig()
 
 const route = useRoute()
 const query = route.query.data
 
-const { data, pending } = await useFetch('/api/get', { lazy: true, query: { data: query } })
+const { data, pending } = await useFetch(`${config.public.apiBase}/api/get`, { lazy: true, query: { data: query } })
 
 const compareData = ref<CompareData>([])
 const selected = reactive<any[]>([])
