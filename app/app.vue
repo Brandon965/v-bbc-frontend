@@ -23,7 +23,7 @@ body {
    border: none;
    width: 100vw;
    height: 100vh;
-   overflow: hidden;
+   overflow-x: hidden;
    background-color: #040204;
 }
 

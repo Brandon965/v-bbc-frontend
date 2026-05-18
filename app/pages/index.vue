@@ -12,8 +12,9 @@ const is_error = shallowRef({
 })
 
 const selected = reactive<Record<string, (string | undefined)[]>>({
-    bw: [],
-    "bw-p": []
+    "bw": [],
+    "bw-p": [],
+    "bl": []
 })
 
 const deserializeSearch = (raw: any): SearchData => ({
@@ -71,6 +72,7 @@ const selectedData = (r: string, pageId: string, index: string) => {
                 <div class="wrapper">
                     <div class="card" v-for="(item, index) in page.data"
                         :class="`${selected[`${page.id}`][index] === `${item.link}` ? 'selected' : ''}`"
+                        v-on:load="selected[`${page.id}`][index] = null"
                         @click="(e) => { selectedData(`${item.link}`, `${page.id}`, `${index}`) }">
                         <NuxtImg :src="item.cover" width="336" height="478" />
                         <div class="tag">{{ item.tag }}</div>
@@ -79,9 +81,9 @@ const selectedData = (r: string, pageId: string, index: string) => {
                 </div>
             </div>
         </div>
-        <div class="truffle">
-            <div class="button" @click="openPage()">Open</div>
-        </div>
+    </div>
+    <div class="truffle">
+        <div class="button" @click="openPage()">Open</div>
     </div>
 </template>
 
@@ -155,10 +157,8 @@ const selectedData = (r: string, pageId: string, index: string) => {
     color: #fff;
 }
 
-
-
 .card.selected {
-    border: 4px #fff solid;
+    border: 4px #e979ff solid;
 }
 
 .card img {
@@ -193,7 +193,7 @@ const selectedData = (r: string, pageId: string, index: string) => {
     padding: 10px;
     display: flex;
     z-index: 1;
-    position: absolute;
+    position: fixed;
     flex-direction: row;
     transform: translate(-50%, -50%);
     background-color: #0e0015a3;

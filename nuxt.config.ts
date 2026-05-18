@@ -11,7 +11,8 @@ export default defineNuxtConfig({
   image: {
     domains: [
       'viewer-epubs-trial.bookwalker.jp',
-      'c.bookwalker.jp'
+      'c.bookwalker.jp',
+      'res.booklive.jp'
     ]
   }
 })
