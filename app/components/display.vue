@@ -20,6 +20,12 @@ const router = useRouter()
     flex-direction: row;
 }
 
+.display .back {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+}
+
 .display .site-title {
     margin-left: auto;
     margin-right: auto;
