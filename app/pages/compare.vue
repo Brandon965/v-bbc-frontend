@@ -10,6 +10,21 @@ const { data, pending } = await useFetch(`${config.public.apiBase}/api/get`, { l
 
 const compareData = ref<CompareData>([])
 const selected = reactive<any[]>([])
+const isShiftHeld = ref(false)
+const lastSelected = ref(0)
+
+onMounted(() => {
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Shift') isShiftHeld.value = true }
+    const onKeyUp = (e: KeyboardEvent) => { if (e.key === 'Shift') isShiftHeld.value = false }
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+
+    onUnmounted(() => {
+        window.removeEventListener('keydown', onKeyDown)
+        window.removeEventListener('keyup', onKeyUp)
+    })
+})
 
 watch(pending, (value) => {
     if (!value) {
@@ -18,12 +33,21 @@ watch(pending, (value) => {
     }
 })
 
-const selectedData = (r: any, index: string | number) => {
-    if (selected[index]) {
-        selected[index] = undefined
+const selectedData = (index: number) => {
+    if (isShiftHeld.value) {
+        if (index > lastSelected.value) {
+            for (let i = lastSelected.value; i <= index; i++) {
+                selected[i] = ''
+            }
+        } else if (index < lastSelected.value) {
+            for (let i = lastSelected.value; i >= index; i--) {
+                selected[i] = undefined
+            }
+        }
     } else {
-        selected[index] = r
+        selected[index] = selected[index] != undefined ? undefined : ''
     }
+    lastSelected.value = index
 }
 
 const copyLinks = () => {
@@ -57,29 +81,23 @@ const download = async () => {
     URL.revokeObjectURL(url);
 }
 
-// https://c.roler.dev/bw/beadc0b9-4eaa-4ee0-a7b9-384f7b5f64b2/0
-// https://c.roler.dev/bw/407a5f9a-099f-42a2-ae30-8b75a5c5013d/0
-// https://c.roler.dev/bw/4fb70d8d-ddaf-467a-a742-3e5f67e9eb12/0
-// https://c.roler.dev/bw/74ecb930-13e2-4156-8822-73986c303d6f/0
-
-
-
-
 </script>
 
 <template>
     <div class="section">
         <div class="options">
             <div class="loading" v-if="pending">Loading Data...</div>
-            <div class="carousel" v-else>
+            <div class="carousel">
                 <div class="wrapper">
                     <template v-for="(item, index) in compareData">
                         <div class="card" v-if="item[0] != undefined"
-                            :class="`${selected[index] === `${item[0].volume}` ? 'selected' : ''}`"
-                            @click="(e) => { selectedData(`${item[0].volume}`, index) }">
-                            <NuxtImg :src="`${item[0].link}`" width="336" fit="cover" />
+                            :class="`${selected[index] !== undefined ? 'selected' : ''}`"
+                            @click="(e) => { selectedData(index) }">
+                            <NuxtImg :src="`${item[0].link}`" width="336" fit="cover" densities="x1"
+                                draggable="false" />
                             <div class="volume">Volume {{ item[0].volume }}</div>
                             <div class="size">{{ item[0].size.replace('*', 'x') }}</div>
+                            <div class="source">{{ item[0].source }}</div>
                         </div>
                     </template>
                 </div>
@@ -140,7 +158,8 @@ const download = async () => {
     width: 185px;
     overflow: hidden;
     position: relative;
-    height: 260px;
+    height: 290px;
+    background-color: rgb(21, 17, 22)a3;
     border: 4px #ffffff00 solid;
 }
 
@@ -150,7 +169,7 @@ const download = async () => {
 
 .card img {
     width: 185px;
-    height: 100%;
+    height: 270px;
     overflow: hidden;
     object-fit: cover;
 }
@@ -172,13 +191,17 @@ const download = async () => {
     background-color: #0000007a;
 }
 
+.card .source {
+    line-height: 15px;
+}
+
 .card .size {
-    bottom: 5px;
+    bottom: 20px;
     right: 0;
-    margin: 10px;
+    margin: 5px;
     color: #fff;
     font-weight: 600;
-    padding: 5px 10px;
+    padding: 5px 5px;
     text-align: center;
     position: absolute;
     background-color: #0000007a;
@@ -191,7 +214,7 @@ const download = async () => {
     width: fit-content;
     padding: 10px;
     display: flex;
-    position: absolute;
+    position: fixed;
     flex-direction: row;
     transform: translate(-50%, -50%);
     background-color: #0e0015a3;
