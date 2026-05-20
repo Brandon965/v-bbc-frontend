@@ -86,8 +86,8 @@ const download = async () => {
 <template>
     <div class="section">
         <div class="options">
-            <div class="loading" v-if="pending">Loading Data...</div>
-            <div class="carousel">
+            <Loading v-if="pending"/>
+            <div class="carousel" v-else>
                 <div class="wrapper">
                     <template v-for="(item, index) in compareData">
                         <div class="card" v-if="item[0] != undefined"

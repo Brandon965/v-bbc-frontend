@@ -20,6 +20,7 @@ import Display from './components/display.vue';
 }
 
 body {
+   margin: 0;
    border: none;
    width: 100vw;
    height: 100vh;

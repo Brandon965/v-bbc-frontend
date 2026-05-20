@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import Loading from '~/components/loading.vue'
 import type { SearchData } from '~/types/main'
 
 const config = useRuntimeConfig()
 
+const refresh_ref = shallowRef<void>()
 const page_data = shallowRef<SearchData[]>([])
 const is_pending = shallowRef<boolean>(false)
 const is_error = shallowRef({
@@ -61,12 +63,7 @@ const selectedData = (r: string, pageId: string, index: string) => {
     <div class="section">
         <input type="text" @keypress="keyPressed($event)">
         <div class="options">
-            <div class="loading" v-if="is_pending">Loading Data...</div>
-            <div class="loading" v-else-if="is_error.error">
-                <div>Error While Fetching Data</div>
-                <div>{{ is_error.status }}</div>
-                <div>{{ is_error.message }}</div>
-            </div>
+            <Loading v-if="is_pending"/>
             <div class="carousel" v-for="page in page_data" v-else>
                 <div class="prefix">{{ page.name }}</div>
                 <div class="wrapper">
@@ -108,15 +105,6 @@ const selectedData = (r: string, pageId: string, index: string) => {
     height: 100%;
     flex-direction: column;
     overflow: hidden;
-}
-
-.loading {
-    text-align: center;
-    width: 100%;
-    height: fit-content;
-    padding: 20px;
-    font-size: 40px;
-    color: #fff;
 }
 
 .section input {
