@@ -4,7 +4,6 @@ import type { SearchData } from '~/types/main'
 
 const config = useRuntimeConfig()
 
-const refresh_ref = shallowRef<void>()
 const page_data = shallowRef<SearchData[]>([])
 const is_pending = shallowRef<boolean>(false)
 const is_error = shallowRef({
@@ -13,7 +12,7 @@ const is_error = shallowRef({
     status: ''
 })
 
-const selected = reactive<Record<string, (string | undefined)[]>>({
+const selected = ref<Record<string, (string | undefined)[]>>({
     "bw": [],
     "bw-p": [],
     "bl": []
@@ -27,15 +26,28 @@ const keyPressed = async (e: KeyboardEvent) => {
     if (e.code == 'Enter') {
         page_data.value = []
         is_pending.value = true
-        const { data, error } = await useFetch(`${config.public.apiBase}/api/search`, { lazy: true, query: { title: e.target!.value }, transform: (item: any) => item.search.map(deserializeSearch) })
-        if (error.value?.status != undefined) {
-            is_error.value.error = true
-            console.log(error.value?.statusCode)
-            // is_error.value.status = String(error.value?.statusCode)
-            // is_error.value.message = String(error.value?.cause)
+        for (const key in selected.value) {
+            const { data, pending, error } = await useFetch(`${config.public.apiBase}/api/search`, { lazy: true, query: { title: e.target!.value, module: key }, transform: (item: any) => item.search.map(deserializeSearch) })
+            // console.log(data.value)
+            watch(data.value, (value) => {
+                console.log(value)
+                if (pending.value == false) {
+                    is_pending.value = false
+                    // console.log(data.value)
+                    page_data.value = [...page_data.value, ...data.value]
+                }
+            })
         }
-        page_data.value = data!.value
-        is_pending.value = false
+
+
+        // if (error.value?.status != undefined) {
+        //     is_error.value.error = true
+        //     console.log(error.value?.statusCode)
+        //     // is_error.value.status = String(error.value?.statusCode)
+        //     // is_error.value.message = String(error.value?.cause)
+        // }
+        // page_data.value = data!.value
+        // is_pending.value = false
     }
 }
 
@@ -63,7 +75,7 @@ const selectedData = (r: string, pageId: string, index: string) => {
     <div class="section">
         <input type="text" @keypress="keyPressed($event)">
         <div class="options">
-            <Loading v-if="is_pending"/>
+            <Loading v-if="is_pending" />
             <div class="carousel" v-for="page in page_data" v-else>
                 <div class="prefix">{{ page.name }}</div>
                 <div class="wrapper">
