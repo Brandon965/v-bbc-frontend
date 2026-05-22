@@ -4,7 +4,7 @@ import type { SearchData } from '~/types/main'
 
 const config = useRuntimeConfig()
 
-const page_data = shallowRef<SearchData[]>([])
+const page_data = ref<SearchData[]>([])
 const is_pending = shallowRef<boolean>(false)
 const is_error = shallowRef({
     error: false,
@@ -12,14 +12,10 @@ const is_error = shallowRef({
     status: ''
 })
 
-const selected = ref<Record<string, (string | undefined)[]>>({
+const selected = ref<Record<string, string[]>>({
+    "bl": [],
     "bw": [],
     "bw-p": [],
-    "bl": []
-})
-
-const deserializeSearch = (raw: any): SearchData => ({
-    ...raw,
 })
 
 const keyPressed = async (e: KeyboardEvent) => {
@@ -27,16 +23,20 @@ const keyPressed = async (e: KeyboardEvent) => {
         page_data.value = []
         is_pending.value = true
         for (const key in selected.value) {
-            const { data, pending, error } = await useFetch(`${config.public.apiBase}/api/search`, { lazy: true, query: { title: e.target!.value, module: key }, transform: (item: any) => item.search.map(deserializeSearch) })
-            // console.log(data.value)
-            watch(data.value, (value) => {
-                console.log(value)
-                if (pending.value == false) {
-                    is_pending.value = false
-                    // console.log(data.value)
-                    page_data.value = [...page_data.value, ...data.value]
-                }
+            page_data.value.push({
+                name: '',
+                id: '',
+                data: []
             })
+
+            await useFetch(`${config.public.apiBase}/api/search`, { lazy: true, query: { title: e.target!.value, module: key } })
+                .then(({ data, status }) => {
+                    if (status.value == 'success') {
+                        is_pending.value = false
+                        page_data.value.splice(page_data.value.length - 1, 1)
+                        page_data.value.push(data.value?.search)
+                    }
+                })
         }
 
 
@@ -54,8 +54,8 @@ const keyPressed = async (e: KeyboardEvent) => {
 const openPage = () => {
     let query = ''
     const router = useRouter()
-    for (const key in selected) {
-        selected[key]?.forEach((element, index) => {
+    for (const key in selected.value) {
+        selected.value[key]?.forEach((element, index) => {
             if (element != undefined) {
                 query = `${query}${query != '' ? '&' : ''}${key}=${element}`
             }
@@ -65,8 +65,8 @@ const openPage = () => {
 }
 
 const selectedData = (r: string, pageId: string, index: string) => {
-    if (selected[pageId])
-        selected[pageId][Number(index)] = selected[pageId]?.[Number(index)] !== undefined ? undefined : r
+    if (selected.value[pageId])
+        selected.value[pageId][Number(index)] = selected.value[pageId]?.[Number(index)] !== undefined ? undefined : r
 }
 
 </script>
@@ -75,12 +75,12 @@ const selectedData = (r: string, pageId: string, index: string) => {
     <div class="section">
         <input type="text" @keypress="keyPressed($event)">
         <div class="options">
-            <Loading v-if="is_pending" />
-            <div class="carousel" v-for="page in page_data" v-else>
-                <div class="prefix">{{ page.name }}</div>
-                <div class="wrapper">
+            <div class="carousel" v-for="page in page_data">
+                <Loading v-if="page.data.length == 0" />
+                <div class="prefix" v-if="page.data">{{ page.name }}</div>
+                <div class="wrapper" v-if="page.data">
                     <div class="card" v-for="(item, index) in page.data"
-                        :class="`${selected[`${page.id}`][index] === `${item.link}` ? 'selected' : ''}`"
+                        :class="`${selected[`${page.id}`]?.[index] === `${item.link}` ? 'selected' : ''}`"
                         v-on:load="selected[`${page.id}`][index] = null"
                         @click="(e) => { selectedData(`${item.link}`, `${page.id}`, `${index}`) }">
                         <NuxtImg :src="item.cover" width="336" height="478" />
@@ -140,6 +140,7 @@ const selectedData = (r: string, pageId: string, index: string) => {
 .carousel {
     width: 100vw;
     height: fit-content;
+    border-bottom: 1px #fff solid;
 }
 
 .carousel .wrapper {

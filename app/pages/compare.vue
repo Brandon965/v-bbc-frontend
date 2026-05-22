@@ -87,7 +87,7 @@ const download = async () => {
     <div class="section">
         <div class="options">
             <Loading v-if="pending"/>
-            <div class="carousel" v-else>
+            <div class="list" v-else>
                 <div class="wrapper">
                     <template v-for="(item, index) in compareData">
                         <div class="card" v-if="item[0] != undefined"
@@ -111,7 +111,7 @@ const download = async () => {
 </template>
 
 <style scoped>
-.carousel .wrapper {
+.list .wrapper {
     gap: 10px;
     display: flex;
     width: fit-content;
@@ -142,7 +142,7 @@ const download = async () => {
     flex-direction: column;
 }
 
-.carousel {
+.list {
     width: 100%;
     height: fit-content;
 }
