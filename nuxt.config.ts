@@ -12,7 +12,8 @@ export default defineNuxtConfig({
     domains: [
       'viewer-epubs-trial.bookwalker.jp',
       'c.bookwalker.jp',
-      'res.booklive.jp'
+      'res.booklive.jp',
+      'cache2-ebookjapan.akamaized.net'
     ]
   }
 })

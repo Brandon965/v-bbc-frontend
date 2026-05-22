@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useState } from '#app'
 import Loading from '~/components/loading.vue'
 import type { SearchData } from '~/types/main'
 
@@ -16,6 +17,7 @@ const selected = ref<Record<string, string[]>>({
     "bl": [],
     "bw": [],
     "bw-p": [],
+    "ebj": []
 })
 
 const keyPressed = async (e: KeyboardEvent) => {
@@ -34,20 +36,12 @@ const keyPressed = async (e: KeyboardEvent) => {
                     if (status.value == 'success') {
                         is_pending.value = false
                         page_data.value.splice(page_data.value.length - 1, 1)
-                        page_data.value.push(data.value?.search)
+                        if (data.value?.search.data.length != 0) {
+                            page_data.value.push(data.value?.search)
+                        }
                     }
                 })
         }
-
-
-        // if (error.value?.status != undefined) {
-        //     is_error.value.error = true
-        //     console.log(error.value?.statusCode)
-        //     // is_error.value.status = String(error.value?.statusCode)
-        //     // is_error.value.message = String(error.value?.cause)
-        // }
-        // page_data.value = data!.value
-        // is_pending.value = false
     }
 }
 
