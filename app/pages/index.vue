@@ -7,11 +7,8 @@ const config = useRuntimeConfig()
 
 const page_data = ref<SearchData[]>([])
 const is_pending = shallowRef<boolean>(false)
-const is_error = shallowRef({
-    error: false,
-    message: '',
-    status: ''
-})
+const router = useRouter()
+router.push({ 'path': '/', query: { search: '' } })
 
 const selected = ref<Record<string, string[]>>({
     "bl": [],
@@ -24,6 +21,7 @@ const keyPressed = async (e: KeyboardEvent) => {
     if (e.code == 'Enter') {
         page_data.value = []
         is_pending.value = true
+        router.push({ 'path': '/', query: { search: e.target!.value } })
         for (const key in selected.value) {
             page_data.value.push({
                 name: '',
@@ -31,16 +29,12 @@ const keyPressed = async (e: KeyboardEvent) => {
                 data: []
             })
 
-            await useFetch(`${config.public.apiBase}/api/search`, { lazy: true, query: { title: e.target!.value, module: key } })
-                .then(({ data, status }) => {
-                    if (status.value == 'success') {
-                        is_pending.value = false
-                        page_data.value.splice(page_data.value.length - 1, 1)
-                        if (data.value?.search.data.length != 0) {
-                            page_data.value.push(data.value?.search)
-                        }
-                    }
-                })
+            const response = await $fetch(`${config.public.apiBase}/api/search`, { lazy: true, query: { title: e.target!.value, module: key } })
+            is_pending.value = false
+            page_data.value.splice(page_data.value.length - 1, 1)
+            if (response?.search.data.length != 0) {
+                page_data.value.push(response?.search)
+            }
         }
     }
 }

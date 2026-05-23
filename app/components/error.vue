@@ -1,11 +1,13 @@
 <script setup lang="ts">
-// BWC Loading SVG
+defineProps<{isError?: any}>()
+
+// BWC Error SVG
 
 </script>
 
 <template>
     <div class="status">
-        <div class="loading">
+        <div class="error">
             <div></div>
             <div class="title">Loading...</div>
             <div class="description">Please wait while we process your request. Do not refresh the page. </div>
@@ -24,7 +26,7 @@
     /* transform: translate(-50%, 0%); */
 }
 
-.status .loading {
+.status .error {
     gap: 10px;
     padding: 10px;
     display: flex;
@@ -33,18 +35,18 @@
     justify-content: center;
 }
 
-.status .loading .title {
+.status .error .title {
     font-size: 20px;
 }
 
-.status .loading .description {
+.status .error .description {
     width: 65%;
     color: #adadad;
     font-size: 14px;
     margin: 0 auto;
 }
 
-.status .loading .cancel {
+.status .error .cancel {
     margin: 0 auto;
     font-size: 16px;
     padding: 10px 20px;
@@ -52,11 +54,11 @@
     background-color: #0f070f9f;
 }
 
-.status .loading .cancel:hover {
+.status .error .cancel:hover {
     background-color: #1b0c1bd6;
 }
 
-.status .loading .cancel:active {
+.status .error .cancel:active {
     background-color: #0a040ad6;
 }
 

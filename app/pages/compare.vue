@@ -1,40 +1,59 @@
 <script setup lang="ts">
+import Error from '~/components/error.vue'
+import Loading from '~/components/loading.vue'
+import { copyLinks } from '~/composables/utils'
 import { compareImages } from '~/lib/compare'
-import type { CompareData } from '~/types/main'
-const config = useRuntimeConfig()
+import type { CompareData, SearchData } from '~/types/main'
 
 const route = useRoute()
 const query = route.query.data
 
-const { data, pending } = await useFetch(`${config.public.apiBase}/api/get`, { lazy: true, query: { data: query } })
-
+const config = useRuntimeConfig()
+const lastSelected = ref<number>(0)
+const isShift = ref<boolean>(false)
+const isLoading = ref<boolean>(true)
+const isError = ref<string | null>(null)
 const compareData = ref<CompareData>([])
-const selected = reactive<any[]>([])
-const isShiftHeld = ref(false)
-const lastSelected = ref(0)
+const selected = reactive<(string | undefined)[]>([])
 
-onMounted(() => {
-    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Shift') isShiftHeld.value = true }
-    const onKeyUp = (e: KeyboardEvent) => { if (e.key === 'Shift') isShiftHeld.value = false }
-
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
-
-    onUnmounted(() => {
-        window.removeEventListener('keydown', onKeyDown)
-        window.removeEventListener('keyup', onKeyUp)
-    })
-})
-
-watch(pending, (value) => {
-    if (!value) {
-        console.log(data.value?.get)
-        compareData.value = compareImages(data.value?.get)
+const { data: fetchData, status: fetchStatus, error: fetchError, refresh } = await useFetch<{ get: SearchData[] }>(
+    `${config.public.apiBase}/api/get`,
+    {
+        lazy: true,
+        query: { data: query },
+        onResponseError({ response }) {
+            isError.value = `Request failed: ${response.status} ${response.statusText}`
+        },
+        onResponse({ response }) {
+            if (!response.ok) {
+                isError.value = `HTTP error: ${response.status}`
+            }
+        }
     }
-})
+)
+
+watch(fetchStatus, (newStatus) => {
+    if (newStatus === 'success') {
+        try {
+            if (fetchData.value?.get && Array.isArray(fetchData.value.get)) {
+                compareData.value = compareImages(fetchData.value.get)
+            } else {
+                isError.value = 'Invalid data format received'
+            }
+        } catch (e) {
+            isError.value = `Error processing data: ${e instanceof Error ? e.toRaw : 'Unknown error'}`
+        } finally {
+            isLoading.value = false
+        }
+    } else if (newStatus === 'error') {
+        isError.value = fetchError.value?.message || 'Unknown error occurred'
+        isLoading.value = false
+    }
+}, { immediate: true })
+
 
 const selectedData = (index: number) => {
-    if (isShiftHeld.value) {
+    if (isShift.value) {
         if (index > lastSelected.value) {
             for (let i = lastSelected.value; i <= index; i++) {
                 selected[i] = ''
@@ -50,189 +69,172 @@ const selectedData = (index: number) => {
     lastSelected.value = index
 }
 
-const copyLinks = () => {
-    let e = ''
-    selected.forEach((value, index) => {
-        if (value != undefined) {
-            e = e + compareData.value[index]?.[0].link + `\n`
-        }
+onMounted(() => {
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Shift') isShift.value = true }
+    const onKeyUp = (e: KeyboardEvent) => { if (e.key === 'Shift') isShift.value = false }
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+
+    onUnmounted(() => {
+        window.removeEventListener('keydown', onKeyDown)
+        window.removeEventListener('keyup', onKeyUp)
     })
-
-    navigator.clipboard.writeText(e)
-}
-
-const download = async () => {
-    const links = selected
-        .map((value, index) => value != undefined ? compareData.value[index]?.[0].link : null)
-        .filter(Boolean)
-        .join('&')
-
-    if (!links) return
-    const { data } = await useFetch('/api/download', { lazy: true, query: { data: links } })
-
-    const byteArray = Uint8Array.from(atob(data.value?.download), c => c.charCodeAt(0))
-    const blob = new Blob([byteArray], { type: 'application/zip' })
-
-    const url = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement('a'), { href: url, download: 'images.zip' })
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url);
-}
+})
 
 </script>
 
 <template>
-    <div class="section">
-        <div class="options">
-            <Loading v-if="pending"/>
-            <div class="list" v-else>
+    <section class="base">
+        <div class="container">
+            <Loading v-if="isLoading" />
+            <Error v-else-if="isError" />
+            <div v-else-if="compareData && Object.keys(compareData).length > 0" class="list">
                 <div class="wrapper">
-                    <template v-for="(item, index) in compareData">
-                        <div class="card" v-if="item[0] != undefined"
-                            :class="`${selected[index] !== undefined ? 'selected' : ''}`"
-                            @click="(e) => { selectedData(index) }">
-                            <NuxtImg :src="`${item[0].link}`" width="336" fit="cover" densities="x1"
-                                draggable="false" />
+                    <template v-for="(item, index) in compareData" :key="Number(index)">
+                        <div class="card" :class="`${selected[index] !== undefined ? 'selected' : ''}`"
+                            @click="selectedData(Number(index))">
+                            <NuxtImg :src="item[0].link" width="336" fit="cover" densities="x1" draggable="false" />
                             <div class="volume">Volume {{ item[0].volume }}</div>
-                            <div class="size">{{ item[0].size.replace('*', 'x') }}</div>
-                            <div class="source">{{ item[0].source }}</div>
+                            <div class="size">{{ item[0].size?.replace('*', 'x') }}</div>
+                            <div class="source">
+                                <img :src="moduleIcon[item[0].source]" class="icon">
+                                <div>{{ item[0].source }}</div>
+                            </div>
                         </div>
                     </template>
                 </div>
             </div>
+            <div v-else class="no-data">
+                <p>No data available</p>
+            </div>
         </div>
-        <div class="truffle">
-            <div class="button" @click="copyLinks">Copy Links</div>
-            <div class="button" @click="download">Download</div>
+        <div class="truffle" v-if="compareData && Object.keys(compareData).length > 0">
+            <div class="button" @click="copyLinks(selected, compareData)">Copy Links</div>
+            <div class="button" @click="download(selected, compareData)">Download</div>
         </div>
-    </div>
+    </section>
 </template>
 
-<style scoped>
-.list .wrapper {
-    gap: 10px;
-    display: flex;
-    width: fit-content;
-    flex-direction: row;
-    flex-wrap: wrap;
-    overflow-x: hidden;
-    overflow-y: scroll;
-    margin: 0 auto;
-    justify-content: center;
-}
-</style>
+<style lang="less">
+.base {
+    .container {
+        gap: 10px;
+        width: 100%;
+        display: flex;
+        height: fit-content;
+        flex-direction: column;
 
-<style>
-.section {
-    gap: 20px;
-    display: flex;
-    width: 100%;
-    height: 100%;
-    flex-direction: column;
-    overflow: hidden;
-}
+        .list {
+            width: 100%;
+            height: fit-content;
 
-.options {
-    gap: 10px;
-    height: 100%;
-    display: flex;
-    height: fit-content;
-    flex-direction: column;
-}
+            .wrapper {
+                gap: 10px;
+                display: flex;
+                margin: 0 auto;
+                flex-wrap: wrap;
+                width: fit-content;
+                flex-direction: row;
+                padding-bottom: 100px;
+                overflow: hidden scroll;
+                justify-content: center;
 
-.list {
-    width: 100%;
-    height: fit-content;
-}
+                .card {
+                    height: 295px;
+                    overflow: hidden;
+                    width: fit-content;
+                    position: relative;
+                    border: 4px #ffffff00 solid;
+                    background-color: rgb(21, 17, 22);
 
+                    img {
+                        width: 185px;
+                        height: 270px;
+                        overflow: hidden;
+                        object-fit: cover;
+                    }
 
-.prefix {
-    font-size: 18px;
-    font-weight: 600;
-    color: #fff;
-}
+                    div {
+                        color: #fff;
+                        text-align: center;
+                    }
 
-.card {
-    width: 185px;
-    overflow: hidden;
-    position: relative;
-    height: 290px;
-    background-color: rgb(21, 17, 22)a3;
-    border: 4px #ffffff00 solid;
-}
+                    .source {
+                        gap: 5px;
+                        height: 20px;
+                        display: flex;
+                        margin: 0 auto;
+                        width: fit-content;
+                        align-items: center;
+                        flex-direction: row;
+                        // line-height: 15px;
 
-.card.selected {
-    border: 4px #e979ff solid;
-}
+                        .icon {
+                            width: 20px;
+                            height: 20px;
+                        }
+                    }
 
-.card img {
-    width: 185px;
-    height: 270px;
-    overflow: hidden;
-    object-fit: cover;
-}
+                    .size {
+                        right: 0;
+                        margin: 5px;
+                        bottom: 20px;
+                        color: #fff;
+                        font-weight: 600;
+                        padding: 5px 5px;
+                        text-align: center;
+                        position: absolute;
+                        background-color: #0000007a;
+                    }
 
-.card div {
-    color: #fff;
-    text-align: center;
-}
+                    .volume {
+                        top: 0;
+                        left: 0;
+                        margin: 5px;
+                        color: #fff;
+                        font-weight: 600;
+                        padding: 5px 10px;
+                        text-align: center;
+                        position: absolute;
+                        background-color: #0000007a;
+                    }
 
-.card .volume {
-    top: 0;
-    left: 0;
-    margin: 5px;
-    color: #fff;
-    font-weight: 600;
-    padding: 5px 10px;
-    text-align: center;
-    position: absolute;
-    background-color: #0000007a;
-}
+                    &.selected {
+                        border: 4px #e979ff solid;
+                    }
+                }
+            }
+        }
+    }
 
-.card .source {
-    line-height: 15px;
-}
+    .truffle {
+        gap: 5px;
+        left: 50%;
+        bottom: 0;
+        padding: 10px;
+        display: flex;
+        position: fixed;
+        width: fit-content;
+        flex-direction: row;
+        transform: translate(-50%, -50%);
+        background-color: #0e0015a3;
 
-.card .size {
-    bottom: 20px;
-    right: 0;
-    margin: 5px;
-    color: #fff;
-    font-weight: 600;
-    padding: 5px 5px;
-    text-align: center;
-    position: absolute;
-    background-color: #0000007a;
-}
+        .button {
+            color: #fff;
+            padding: 10px;
+            cursor: pointer;
+            text-align: center;
+            background-color: #151116;
 
-.truffle {
-    gap: 5px;
-    bottom: 0;
-    left: 50%;
-    width: fit-content;
-    padding: 10px;
-    display: flex;
-    position: fixed;
-    flex-direction: row;
-    transform: translate(-50%, -50%);
-    background-color: #0e0015a3;
-}
+            &:hover {
+                background-color: #262626;
+            }
 
-.truffle .button {
-    color: #fff;
-    padding: 10px;
-    cursor: pointer;
-    text-align: center;
-    background-color: #151116;
-}
-
-.truffle .button:hover {
-    background-color: #262626;
-}
-
-.truffle .button:active {
-    background-color: #0e0e0e;
+            &:active {
+                background-color: #0e0e0e;
+            }
+        }
+    }
 }
 </style>

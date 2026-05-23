@@ -1,7 +1,9 @@
 export interface CompareData {
-    [x: number]: [
-        [x: Result[]]
-    ]
+    [x: number]: [Result, ...Result[]]
+}
+
+export interface DownloadResponse {
+    download: string
 }
 
 export interface SearchData {
@@ -14,8 +16,10 @@ export interface Result {
     title?: string | undefined,
     cover?: string | undefined,
     link?: string | undefined,
-    tag?: string | undefined , 
+    tag?: string | undefined,
     volume?: string | number | undefined,
     type?: string | undefined,
-    size?: string
+    size?: string,
+    source?: string,
+    cropped?: boolean
 }
