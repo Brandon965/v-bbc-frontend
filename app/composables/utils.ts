@@ -1,6 +1,7 @@
 import type { CompareData, DownloadResponse } from "~/types/main";
 import BL from '~/assets/bl.svg?inline'
 import BW from '~/assets/bw.svg?inline'
+import BWG from '~/assets/bw-g.svg?inline'
 import EBJ from '~/assets/ebj.svg?inline'
 
 export const copyLinks = async (selected: any[], compareData: CompareData) => {
@@ -53,5 +54,7 @@ export const download = async (selected: any[], compareData: CompareData) => {
 export const moduleIcon = {
     'Booklive': BL,
     'Bookwalker': BW,
+    'Bookwalker Preview': BW,
+    'Bookwalker Global': BWG,
     'EBookJapan': EBJ,
 }

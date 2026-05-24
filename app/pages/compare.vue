@@ -8,6 +8,7 @@ import type { CompareData, SearchData } from '~/types/main'
 const route = useRoute()
 const query = route.query.data
 
+const cached = ref(false)
 const config = useRuntimeConfig()
 const lastSelected = ref<number>(0)
 const isShift = ref<boolean>(false)
@@ -16,41 +17,54 @@ const isError = ref<string | null>(null)
 const compareData = ref<CompareData>([])
 const selected = reactive<(string | undefined)[]>([])
 
-const { data: fetchData, status: fetchStatus, error: fetchError, refresh } = await useFetch<{ get: SearchData[] }>(
-    `${config.public.apiBase}/api/get`,
-    {
-        lazy: true,
-        query: { data: query },
-        onResponseError({ response }) {
-            isError.value = `Request failed: ${response.status} ${response.statusText}`
-        },
-        onResponse({ response }) {
-            if (!response.ok) {
-                isError.value = `HTTP error: ${response.status}`
+const cache = sessionStorage.getItem(`last-compare`)
+if (cache) {
+    const { searched } = JSON.parse(cache)
+    if (searched == query) cached.value = true
+}
+
+if (cached.value) {
+    const { data } = JSON.parse(cache)
+    compareData.value = compareImages(data)
+    isLoading.value = false
+} else {
+    const { data: fetchData, status: fetchStatus, error: fetchError, refresh } = await useFetch<{ get: SearchData[] }>(
+        `${config.public.apiBase}/api/get`,
+        {
+            lazy: true,
+            query: { data: query },
+            onResponseError({ response }) {
+                isError.value = `Request failed: ${response.status} ${response.statusText}`
+            },
+            onResponse({ response }) {
+                if (!response.ok) {
+                    isError.value = `HTTP error: ${response.status}`
+                }
             }
         }
-    }
-)
+    )
 
-watch(fetchStatus, (newStatus) => {
-    if (newStatus === 'success') {
-        try {
-            if (fetchData.value?.get && Array.isArray(fetchData.value.get)) {
-                compareData.value = compareImages(fetchData.value.get)
-            } else {
-                isError.value = 'Invalid data format received'
+    watch(fetchStatus, (newStatus) => {
+        if (newStatus === 'success') {
+            try {
+                if (fetchData.value?.get && Array.isArray(fetchData.value.get)) {
+                    sessionStorage.setItem(`last-compare`, JSON.stringify({ data: fetchData.value.get, searched: query }))
+                    compareData.value = compareImages(fetchData.value.get)
+                    console.log(compareData.value)
+                } else {
+                    isError.value = 'Invalid data format received'
+                }
+            } catch (e) {
+                isError.value = `Error processing data: ${e instanceof Error ? e.toRaw : 'Unknown error'}`
+            } finally {
+                isLoading.value = false
             }
-        } catch (e) {
-            isError.value = `Error processing data: ${e instanceof Error ? e.toRaw : 'Unknown error'}`
-        } finally {
+        } else if (newStatus === 'error') {
+            isError.value = fetchError.value?.message || 'Unknown error occurred'
             isLoading.value = false
         }
-    } else if (newStatus === 'error') {
-        isError.value = fetchError.value?.message || 'Unknown error occurred'
-        isLoading.value = false
-    }
-}, { immediate: true })
-
+    }, { immediate: true })
+}
 
 const selectedData = (index: number) => {
     if (isShift.value) {
@@ -106,7 +120,7 @@ onMounted(() => {
                 </div>
             </div>
             <div v-else class="no-data">
-                <p>No data available</p>
+                <p>No Data Available!</p>
             </div>
         </div>
         <div class="truffle" v-if="compareData && Object.keys(compareData).length > 0">
@@ -127,7 +141,9 @@ onMounted(() => {
 
         .list {
             width: 100%;
+            display: flex;
             height: fit-content;
+            flex-direction: column;
 
             .wrapper {
                 gap: 10px;
@@ -168,7 +184,6 @@ onMounted(() => {
                         width: fit-content;
                         align-items: center;
                         flex-direction: row;
-                        // line-height: 15px;
 
                         .icon {
                             width: 20px;
@@ -205,6 +220,12 @@ onMounted(() => {
                     }
                 }
             }
+        }
+
+        .no-data {
+            color: #fff;
+            font-size: 30px;
+            text-align: center;
         }
     }
 

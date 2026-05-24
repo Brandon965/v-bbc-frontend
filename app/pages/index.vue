@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useState } from '#app'
 import Loading from '~/components/loading.vue'
 import type { SearchData } from '~/types/main'
 
@@ -7,14 +6,16 @@ const config = useRuntimeConfig()
 
 const page_data = ref<SearchData[]>([])
 const is_pending = shallowRef<boolean>(false)
+
 const router = useRouter()
 router.push({ 'path': '/', query: { search: '' } })
 
 const selected = ref<Record<string, string[]>>({
     "bl": [],
     "bw": [],
+    "bw-g": [],
+    "ebj": [],
     "bw-p": [],
-    "ebj": []
 })
 
 const keyPressed = async (e: KeyboardEvent) => {
@@ -126,7 +127,6 @@ const selectedData = (r: string, pageId: string, index: string) => {
 }
 
 .carousel {
-    width: 100vw;
     height: fit-content;
     border-bottom: 1px #fff solid;
 }

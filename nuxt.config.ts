@@ -13,7 +13,8 @@ export default defineNuxtConfig({
       'viewer-epubs-trial.bookwalker.jp',
       'c.bookwalker.jp',
       'res.booklive.jp',
-      'cache2-ebookjapan.akamaized.net'
+      'cache2-ebookjapan.akamaized.net',
+      'img.sos-dan.net'
     ]
   }
 })
