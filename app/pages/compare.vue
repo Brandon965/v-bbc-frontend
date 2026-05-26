@@ -25,7 +25,7 @@ if (cache) {
 
 if (cached.value) {
     const { data } = JSON.parse(cache)
-    compareData.value = compareImages(data)
+    compareData.value = await compareImages(data)
     isLoading.value = false
 } else {
     const { data: fetchData, status: fetchStatus, error: fetchError, refresh } = await useFetch<{ get: SearchData[] }>(
@@ -44,12 +44,12 @@ if (cached.value) {
         }
     )
 
-    watch(fetchStatus, (newStatus) => {
+    watch(fetchStatus, async (newStatus) => {
         if (newStatus === 'success') {
             try {
                 if (fetchData.value?.get && Array.isArray(fetchData.value.get)) {
                     sessionStorage.setItem(`last-compare`, JSON.stringify({ data: fetchData.value.get, searched: query }))
-                    compareData.value = compareImages(fetchData.value.get)
+                    compareData.value = await compareImages(fetchData.value.get)
                     console.log(compareData.value)
                 } else {
                     isError.value = 'Invalid data format received'
@@ -103,10 +103,14 @@ onMounted(() => {
         <div class="container">
             <Loading v-if="isLoading" />
             <Error v-else-if="isError" />
-            <div v-else-if="compareData && Object.keys(compareData).length > 0" class="list">
+            <!-- <div v-else-if="!compareData && Object.keys(compareData).length <= 0" class="no-data">
+                <p>No Data Available!</p>
+            </div> -->
+            <div v-else class="list">
                 <div class="wrapper">
                     <template v-for="(item, index) in compareData" :key="Number(index)">
-                        <div class="card" :class="`${selected[index] !== undefined ? 'selected' : ''}`"
+                        <div class="card" v-if="item && item[0]"
+                            :class="`${selected[index] !== undefined ? 'selected' : ''}`"
                             @click="selectedData(Number(index))">
                             <NuxtImg :src="item[0].link" width="336" fit="cover" densities="x1" draggable="false" />
                             <div class="volume">Volume {{ item[0].volume }}</div>
@@ -118,9 +122,6 @@ onMounted(() => {
                         </div>
                     </template>
                 </div>
-            </div>
-            <div v-else class="no-data">
-                <p>No Data Available!</p>
             </div>
         </div>
         <div class="truffle" v-if="compareData && Object.keys(compareData).length > 0">

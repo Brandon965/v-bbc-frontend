@@ -1,8 +1,9 @@
-export const compareImages = (images: any) => {
+export const compareImages = async (images: any) => {
   const list: any[] = [];
 
   for (const data of images) {
     if (!data.name) continue;
+    if (!data.data) continue;
     for (const entry of data.data) {
       const vol = Number(entry.volume) - 1;
 

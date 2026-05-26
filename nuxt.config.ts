@@ -14,7 +14,8 @@ export default defineNuxtConfig({
       'c.bookwalker.jp',
       'res.booklive.jp',
       'cache2-ebookjapan.akamaized.net',
-      'img.sos-dan.net'
+      'img.sos-dan.net',
+      'm.media-amazon.com'
     ]
   }
 })
