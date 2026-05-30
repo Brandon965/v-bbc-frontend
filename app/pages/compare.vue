@@ -101,8 +101,8 @@ onMounted(() => {
 <template>
     <section class="base">
         <div class="container">
-            <Loading v-if="isLoading" />
-            <Error v-else-if="isError" />
+            <Error v-if="isError" />
+            <Loading v-if="isLoading" scale="scale(150%)"/>
             <!-- <div v-else-if="!compareData && Object.keys(compareData).length <= 0" class="no-data">
                 <p>No Data Available!</p>
             </div> -->

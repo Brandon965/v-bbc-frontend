@@ -42,7 +42,7 @@ const fetchModules = async (input?: string) => {
         if (cached) {
             const { data, fetchedAt, searched } = JSON.parse(cached)
             const expiration = new Date(fetchedAt)
-            expiration.setTime(expiration.getTime() + 30 * 1000)
+            expiration.setTime(expiration.getTime() + 1000 * 1000)
 
             if (searched !== input || expiration.getTime() < Date.now()) {
                 shouldFetch = true
@@ -113,7 +113,7 @@ onMounted(() => {
             <input type="text" @keypress="keyPressed">
             <div class="box">
                 <div class="carousel" v-for="page in pageData">
-                    <Loading v-if="loadingModule[page.id]" />
+                    <Loading v-if="loadingModule[page.id]" scale="scale(100%)" />
                     <div class="prefix" v-if="!loadingModule[page.id] && page.data.length != 0">
                         <img :src="moduleIcon[page.name]" class="icon">
                         <div>{{ page.name }}</div>
