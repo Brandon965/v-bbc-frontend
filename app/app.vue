@@ -31,4 +31,8 @@ body {
 #__nuxt {
    padding: 20px;
 }
+
+.base {
+   margin-top: 50px;
+}
 </style>

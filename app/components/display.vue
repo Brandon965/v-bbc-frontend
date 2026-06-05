@@ -22,6 +22,11 @@ const router = useRouter()
     font-size: 22px;
     font-weight: 600;
     flex-direction: row;
+    position: fixed;
+    width: calc(100% - 60px);
+    z-index: 3;
+    background-color: #ea98ff13;
+    backdrop-filter: blur(50px);
 }
 
 .display .back {

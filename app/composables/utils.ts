@@ -1,10 +1,4 @@
 import type { CompareData, DownloadResponse } from "~/types/main";
-import BL from '~/assets/bl.svg?inline'
-import BW from '~/assets/bw.svg?inline'
-import BWG from '~/assets/bw-g.svg?inline'
-import EBJ from '~/assets/ebj.svg?inline'
-import AZ from '~/assets/az.svg?inline'
-import MD from '~/assets/md.svg?inline'
 
 export const copyLinks = async (selected: any[], compareData: CompareData) => {
   const links = selected
@@ -51,15 +45,4 @@ export const download = async (selected: any[], compareData: CompareData) => {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-}
-
-export const moduleIcon = {
-    'Booklive': BL,
-    'Bookwalker': BW,
-    'Bookwalker Preview': BW,
-    'Bookwalker Global': BWG,
-    'EBookJapan': EBJ,
-    'Amazon': AZ,
-    'Amazon Japan': AZ,
-    'Mangadex': MD
 }

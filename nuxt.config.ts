@@ -2,7 +2,7 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  modules: ['@nuxt/image'],
+  modules: ['@nuxt/image', '@vueuse/nuxt'],
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE ?? 'http://localhost:3000'
@@ -15,7 +15,9 @@ export default defineNuxtConfig({
       'res.booklive.jp',
       'cache2-ebookjapan.akamaized.net',
       'img.sos-dan.net',
-      'm.media-amazon.com'
+      'm.media-amazon.com',
+      'img.ridicdn.net',
+      'melonbooks.akamaized.net'
     ]
   }
 })

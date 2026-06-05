@@ -23,7 +23,7 @@ if (cache) {
     if (searched == query) cached.value = true
 }
 
-if (cached.value) {
+if (cache && cached.value) {
     const { data } = JSON.parse(cache)
     compareData.value = await compareImages(data)
     isLoading.value = false
@@ -116,7 +116,7 @@ onMounted(() => {
                             <div class="volume">Volume {{ item[0].volume }}</div>
                             <div class="size">{{ item[0].size?.replace('*', 'x') }}</div>
                             <div class="source">
-                                <img :src="moduleIcon[item[0].source]" class="icon">
+                                <img :src="modulesTemplate.find((e) => e.name === item[0].source)?.icon" class="icon">
                                 <div>{{ item[0].source }}</div>
                             </div>
                         </div>

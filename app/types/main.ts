@@ -9,6 +9,8 @@ export interface DownloadResponse {
 export interface SearchData {
     name: string;
     id: string;
+    loading?: boolean;
+    icon?: string;
     data: Result[];
 }
 

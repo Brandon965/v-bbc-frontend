@@ -1,43 +1,38 @@
 <script setup lang="ts">
+import { useConfig } from '~/composables/config'
 import type { SearchData } from '~/types/main'
 
 const config = useRuntimeConfig()
 
-const pageData = ref<SearchData[]>([])
-const selected = ref<Record<string, string[]>>({
-    "bl": [],
-    "bw": [],
-    "bw-g": [],
-    "bw-p": [],
-    "ebj": [],
-    "az": [],
-    "az-j": [],
-    "md": []
-})
-const loadingModule = ref<Record<string, boolean>>({
-    "bl": false,
-    "bw": false,
-    "bw-g": false,
-    "bw-p": false,
-    "ebj": false,
-    "az": false,
-    "az-j": false,
-    "md": false
-})
+const providers = useConfig().config.value.providers
+const mature = useConfig().config.value.mature
+
+const isSearching = ref<boolean>(false)
+const modules = ref<SearchData[]>(modulesTemplate)
+const selected = ref<Record<string, (string | undefined)[]>>(Object.fromEntries(modulesTemplate.map(id => [id.id, []])))
 
 const route = useRoute()
 const router = useRouter()
 
 const fetchModules = async (input?: string) => {
-    if (pageData.value.length != 0) pageData.value = []
+    if (isSearching.value) return
+    isSearching.value = true
 
     if (!input || input == '') return
 
-    await Promise.all(Object.keys(selected.value).map(async (module) => {
+    await Promise.all(Object.values(providers).map(async (item) => {
+        if (!item.enabled) return
+        const module = item.id
+        const moduleValue = modules.value.findIndex((e) => e.id == module)
+        if (!modules.value[moduleValue]) return
+
+        let shouldFetch: boolean = false
         const key = `${module}-last-search`
         const cached = sessionStorage.getItem(key)
-        loadingModule.value[module] = true
-        let shouldFetch = false
+
+        if (modules.value[moduleValue].data.length !== 0) {
+            modules.value[moduleValue].data = []
+        }
 
         if (cached) {
             const { data, fetchedAt, searched } = JSON.parse(cached)
@@ -47,8 +42,8 @@ const fetchModules = async (input?: string) => {
             if (searched !== input || expiration.getTime() < Date.now()) {
                 shouldFetch = true
             } else {
-                if (data.data.length !== 0) pageData.value.push(data)
-                loadingModule.value[module] = false
+                if (data.data.length !== 0) modules.value[moduleValue].data = data.data
+                modules.value[moduleValue].loading = false
                 return
             }
         } else if (!cached) {
@@ -58,16 +53,18 @@ const fetchModules = async (input?: string) => {
         if (!shouldFetch) return
 
         const response = await $fetch<{ search: SearchData }>(`${config.public.apiBase}/api/search`, {
-            query: { title: input, module: module }
+            query: { title: input, module: module, mature }
         })
 
         sessionStorage.setItem(key, JSON.stringify({ data: response.search, fetchedAt: new Date(), searched: input }))
 
         if (response?.search.data.length !== 0)
-            pageData.value.push(response?.search)
+            modules.value[moduleValue].data = response?.search.data
 
-        loadingModule.value[module] = false
+        modules.value[moduleValue].loading = false
     }))
+
+    isSearching.value = false
 }
 
 const openPage = () => {
@@ -89,11 +86,14 @@ const keyPressed = async (event: KeyboardEvent) => {
     }
 }
 
-const selectedData = (r: string, pageId: string, index: string) => {
+const selectedData = (r: string | undefined, pageId: string, index: number) => {
+    const str = String(r)
     const page = selected.value[pageId]
     if (!page) return
 
-    page[Number(index)] = page[Number(index)] !== undefined ? undefined : r
+    console.log(page)
+
+    page[index] = page[index] !== undefined ? undefined : str
 }
 
 
@@ -112,19 +112,23 @@ onMounted(() => {
         <div class="container">
             <input type="text" @keypress="keyPressed">
             <div class="box">
-                <div class="carousel" v-for="page in pageData">
-                    <Loading v-if="loadingModule[page.id]" scale="scale(100%)" />
-                    <div class="prefix" v-if="!loadingModule[page.id] && page.data.length != 0">
-                        <img :src="moduleIcon[page.name]" class="icon">
+                <div class="carousel" v-for="page in modules"
+                    :style="` ${page.data.length === 0 ? '' : 'border-top: 1px #fff solid;'}`">
+                    <Loading v-if="page.loading && isSearching" scale="scale(100%)" :search="true" />
+                    <div class="prefix" v-if="!page.loading && page.data.length != 0">
+                        <img :src="page.icon" class="icon">
                         <div>{{ page.name }}</div>
                     </div>
-                    <div class="wrapper" v-if="page.data.length != 0">
+                    <div class="wrapper" v-if="page.data.length !== 0">
                         <div class="card" v-for="(item, index) in page.data"
-                            :class="`${selected[`${page.id}`]?.[index] === `${item.link}` ? 'selected' : ''}`"
-                            @click="(e) => { selectedData(`${item.link}`, `${page.id}`, `${index}`) }">
+                            :class="{ selected: selected[page.id]?.[index] == `${item.link}` }"
+                            @click="selectedData(item.link, page.id, index)">
                             <NuxtImg :src="item.cover" width="336" height="478" />
-                            <div class="tag" v-if="item.tag">{{ item.tag }}</div>
-                            <div class="tag" id="single" v-if="!item.isSeries && ['az', 'az-j'].includes(page.id)">Single</div>
+                            <div class="tags" v-if="item.tag">
+                                <div>{{ item.tag }}</div>
+                            </div>
+                            <div class="tag" id="single" v-if="!item.isSeries && ['az', 'az-j'].includes(page.id)">
+                                Single</div>
                             <div>{{ item.title }}</div>
                         </div>
                     </div>
@@ -169,9 +173,8 @@ onMounted(() => {
             flex-direction: column;
 
             .carousel {
-                margin-bottom: 5px;
+                padding-top: 5px;
                 height: fit-content;
-                border-bottom: 1px #fff solid;
 
                 .prefix {
                     gap: 5px;
@@ -206,19 +209,14 @@ onMounted(() => {
                         background-color: #070307;
                         border: 4px #ffffff00 solid;
 
-                        .tag {
-                            top: 0;
-                            left: 0;
-                            margin: 5px;
+                        .tags {
+                            display: flex;
                             color: #fff;
                             font-weight: 600;
-                            padding: 5px 10px;
                             text-align: center;
-                            position: absolute;
-                            background-color: #0000007a;
 
-                            &#single {
-                                left: 100px;
+                            div {
+                                margin: 0 auto;
                             }
                         }
 
